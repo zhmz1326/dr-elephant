@@ -79,7 +79,6 @@ class SparkRestClient(sparkConf: SparkConf) {
   ): Future[SparkRestDerivedData] = {
     val (applicationInfo, attemptTarget) = getApplicationMetaData(appId)
 
-    // Limit the scope of async.
     Future {
       blocking {
         val futureJobDatas = Future {
@@ -140,8 +139,6 @@ class SparkRestClient(sparkConf: SparkConf) {
 
     val applicationInfo = getApplicationInfo(appTarget)
 
-    // These are pure and cannot fail, therefore it is safe to have
-    // them outside of the async block.
     val lastAttemptId = applicationInfo.attempts.maxBy {
       _.startTime
     }.attemptId
