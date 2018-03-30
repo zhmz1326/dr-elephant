@@ -39,6 +39,7 @@ import javax.ws.rs.core.MediaType
 
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.glassfish.jersey.client.ClientProperties
 
 import scala.concurrent.duration.{Duration, SECONDS}
 
@@ -72,7 +73,7 @@ class SparkRestClient(sparkConf: SparkConf) {
       throw new IllegalArgumentException("spark.yarn.historyServer.address not provided; can't use Spark REST API")
   }
 
-  private val apiTarget: WebTarget = client.target(historyServerUri).path(API_V1_MOUNT_PATH)
+  private val apiTarget: WebTarget = client.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT).property(ClientProperties.READ_TIMEOUT, READ_TIMEOUT).target(historyServerUri).path(API_V1_MOUNT_PATH)
 
   def fetchData(appId: String, fetchLogs: Boolean = false)(
     implicit ec: ExecutionContext
@@ -151,7 +152,8 @@ class SparkRestClient(sparkConf: SparkConf) {
       get(appTarget, SparkRestObjectMapper.readValue[ApplicationInfoImpl])
     } catch {
       case NonFatal(e) => {
-        logger.error(s"error reading applicationInfo ${appTarget.getUri}", e)
+        logger.error(s"error reading applicationInfo ${appTarget.getUri}. Exception Message = " + e.getMessage)
+        logger.debug(e)
         throw e
       }
     }
@@ -175,7 +177,8 @@ class SparkRestClient(sparkConf: SparkConf) {
       new ZipInputStream(new BufferedInputStream(is))
     } catch {
       case NonFatal(e) => {
-        logger.error(s"error reading logs ${logTarget.getUri}", e)
+        logger.error(s"error reading logs ${logTarget.getUri}. Exception Message = " + e.getMessage)
+        logger.debug(e)
         throw e
       }
     }
@@ -208,7 +211,8 @@ class SparkRestClient(sparkConf: SparkConf) {
       get(target, SparkRestObjectMapper.readValue[Seq[JobDataImpl]])
     } catch {
       case NonFatal(e) => {
-        logger.error(s"error reading jobData ${target.getUri}", e)
+        logger.error(s"error reading jobData ${target.getUri}. Exception Message = " + e.getMessage)
+        logger.debug(e)
         throw e
       }
     }
@@ -220,7 +224,8 @@ class SparkRestClient(sparkConf: SparkConf) {
       get(target, SparkRestObjectMapper.readValue[Seq[StageDataImpl]])
     } catch {
       case NonFatal(e) => {
-        logger.error(s"error reading stageData ${target.getUri}", e)
+        logger.warn(s"error reading stageData ${target.getUri}. Exception Message = " + e.getMessage)
+        logger.debug(e)
         throw e
       }
     }
@@ -232,7 +237,8 @@ class SparkRestClient(sparkConf: SparkConf) {
       get(target, SparkRestObjectMapper.readValue[Seq[ExecutorSummaryImpl]])
     } catch {
       case NonFatal(e) => {
-        logger.error(s"error reading executorSummary ${target.getUri}", e)
+        logger.error(s"error reading executorSummary ${target.getUri}. Exception Message = " + e.getMessage)
+        logger.debug(e)
         throw e
       }
     }
@@ -244,6 +250,8 @@ object SparkRestClient {
   val API_V1_MOUNT_PATH = "api/v1"
   val IN_PROGRESS = ".inprogress"
   val DEFAULT_TIMEOUT = Duration(5, SECONDS);
+  val CONNECTION_TIMEOUT = 5000
+  val READ_TIMEOUT = 5000
 
   val SparkRestObjectMapper = {
     val dateFormat = {

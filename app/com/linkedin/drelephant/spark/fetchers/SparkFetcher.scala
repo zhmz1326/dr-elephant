@@ -16,10 +16,11 @@
 
 package com.linkedin.drelephant.spark.fetchers
 
+import java.util.concurrent.TimeoutException
+
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.concurrent.duration.{Duration, SECONDS}
-import scala.util.{Try, Success, Failure}
-
+import scala.util.{Failure, Success, Try}
 import com.linkedin.drelephant.analysis.{AnalyticJob, ElephantFetcher}
 import com.linkedin.drelephant.configurations.fetcher.FetcherConfigurationData
 import com.linkedin.drelephant.spark.data.SparkApplicationData
@@ -77,7 +78,7 @@ class SparkFetcher(fetcherConfigurationData: FetcherConfigurationData)
   override def fetchData(analyticJob: AnalyticJob): SparkApplicationData = {
     doFetchData(analyticJob) match {
       case Success(data) => data
-      case Failure(e) => throw e
+      case Failure(e) => throw new TimeoutException()
     }
   }
 
