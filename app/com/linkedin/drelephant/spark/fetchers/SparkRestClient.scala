@@ -90,20 +90,37 @@ class SparkRestClient(sparkConf: SparkConf) {
       val futureExecutorSummaries = Future {
         getExecutorSummaries(attemptTarget)
       }
+
+      val futureFailedTaskData = Future {
+        getStagesWithFailedTasks(attemptTarget)
+      }
       val futureLogData = if (fetchLogs) {
         Future {
           getLogData(attemptTarget)
         }
       } else Future.successful(None)
 
-      SparkRestDerivedData(
-        applicationInfo,
-        Await.result(futureJobDatas, DEFAULT_TIMEOUT),
-        Await.result(futureStageDatas, DEFAULT_TIMEOUT),
-        Await.result(futureExecutorSummaries, Duration(5, SECONDS)),
-        Await.result(futureLogData, Duration(5, SECONDS))
-      )
-
+      if (fetchFailedTasks) {
+        val futureFailedTasksDatas = Future {
+          getStagesWithFailedTasks(attemptTarget)
+        }
+        SparkRestDerivedData(
+          applicationInfo,
+          Await.result(futureJobDatas, DEFAULT_TIMEOUT),
+          Await.result(futureStageDatas, DEFAULT_TIMEOUT),
+          Await.result(futureExecutorSummaries, DEFAULT_TIMEOUT),
+          Await.result(futureFailedTasksDatas, DEFAULT_TIMEOUT),
+          Await.result(futureLogData, DEFAULT_TIMEOUT))
+      } else {
+        SparkRestDerivedData(
+          applicationInfo,
+          Await.result(futureJobDatas, DEFAULT_TIMEOUT),
+          Await.result(futureStageDatas, DEFAULT_TIMEOUT),
+          Await.result(futureExecutorSummaries, DEFAULT_TIMEOUT),
+          Seq.empty,
+          Await.result(futureLogData, DEFAULT_TIMEOUT)
+        )
+      }
     }
   }
 
