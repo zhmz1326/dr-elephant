@@ -25,7 +25,7 @@ import java.util.{Calendar, SimpleTimeZone}
 import com.linkedin.drelephant.spark.legacydata.LegacyDataConverters
 import org.apache.spark.deploy.history.SparkDataCollection
 
-import scala.concurrent.{Await, ExecutionContext, Future, blocking}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.control.NonFatal
 import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -81,38 +81,29 @@ class SparkRestClient(sparkConf: SparkConf) {
     val (applicationInfo, attemptTarget) = getApplicationMetaData(appId)
 
     Future {
-      blocking {
-        val futureJobDatas = Future {
-          blocking {
-            getJobDatas(attemptTarget)
-          }
-        }
-        val futureStageDatas = Future {
-          blocking {
-            getStageDatas(attemptTarget)
-          }
-        }
-        val futureExecutorSummaries = Future {
-          blocking {
-            getExecutorSummaries(attemptTarget)
-          }
-        }
-        val futureLogData = if (fetchLogs) {
-          Future {
-            blocking {
-              getLogData(attemptTarget)
-            }
-          }
-        } else Future.successful(None)
-
-        SparkRestDerivedData(
-          applicationInfo,
-          Await.result(futureJobDatas, DEFAULT_TIMEOUT),
-          Await.result(futureStageDatas, DEFAULT_TIMEOUT),
-          Await.result(futureExecutorSummaries, Duration(5, SECONDS)),
-          Await.result(futureLogData, Duration(5, SECONDS))
-        )
+      val futureJobDatas = Future {
+        getJobDatas(attemptTarget)
       }
+      val futureStageDatas = Future {
+        getStageDatas(attemptTarget)
+      }
+      val futureExecutorSummaries = Future {
+        getExecutorSummaries(attemptTarget)
+      }
+      val futureLogData = if (fetchLogs) {
+        Future {
+          getLogData(attemptTarget)
+        }
+      } else Future.successful(None)
+
+      SparkRestDerivedData(
+        applicationInfo,
+        Await.result(futureJobDatas, DEFAULT_TIMEOUT),
+        Await.result(futureStageDatas, DEFAULT_TIMEOUT),
+        Await.result(futureExecutorSummaries, Duration(5, SECONDS)),
+        Await.result(futureLogData, Duration(5, SECONDS))
+      )
+
     }
   }
 
