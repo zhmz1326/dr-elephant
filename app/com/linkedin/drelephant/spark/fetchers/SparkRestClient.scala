@@ -81,45 +81,32 @@ class SparkRestClient(sparkConf: SparkConf) {
     val (applicationInfo, attemptTarget) = getApplicationMetaData(appId)
 
     Future {
-      val futureJobDatas = Future {
-        getJobDatas(attemptTarget)
-      }
-      val futureStageDatas = Future {
-        getStageDatas(attemptTarget)
-      }
-      val futureExecutorSummaries = Future {
-        getExecutorSummaries(attemptTarget)
-      }
-
-      val futureFailedTaskData = Future {
-        getStagesWithFailedTasks(attemptTarget)
-      }
-      val futureLogData = if (fetchLogs) {
-        Future {
-          getLogData(attemptTarget)
-        }
-      } else Future.successful(None)
+      val jobDatas = getJobDatas(attemptTarget)
+      val stageDatas = getStageDatas(attemptTarget)
+      val executorSummaries = getExecutorSummaries(attemptTarget)
+      val failedTaskData = getStagesWithFailedTasks(attemptTarget)
+      val logData = if (fetchLogs) {
+        getLogData(attemptTarget)
+      } else None
 
       if (fetchFailedTasks) {
-        val futureFailedTasksDatas = Future {
-          getStagesWithFailedTasks(attemptTarget)
-        }
+        val failedTasksDatas = getStagesWithFailedTasks(attemptTarget)
+
         SparkRestDerivedData(
           applicationInfo,
-          Await.result(futureJobDatas, DEFAULT_TIMEOUT),
-          Await.result(futureStageDatas, DEFAULT_TIMEOUT),
-          Await.result(futureExecutorSummaries, DEFAULT_TIMEOUT),
-          Await.result(futureFailedTasksDatas, DEFAULT_TIMEOUT),
-          Await.result(futureLogData, DEFAULT_TIMEOUT))
+          jobDatas,
+          stageDatas,
+          executorSummaries,
+          failedTasksDatas,
+          logData)
       } else {
         SparkRestDerivedData(
           applicationInfo,
-          Await.result(futureJobDatas, DEFAULT_TIMEOUT),
-          Await.result(futureStageDatas, DEFAULT_TIMEOUT),
-          Await.result(futureExecutorSummaries, DEFAULT_TIMEOUT),
+          jobDatas,
+          stageDatas,
+          executorSummaries,
           Seq.empty,
-          Await.result(futureLogData, DEFAULT_TIMEOUT)
-        )
+          logData)
       }
     }
   }
